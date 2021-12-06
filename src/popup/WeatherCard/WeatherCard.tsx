@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { fetchOpenWeatherData, OpenWeatherDataI } from '../../utils/api';
+import {
+  fetchOpenWeatherData,
+  OpenWeatherDataI,
+  OpenWeatherTempScale,
+} from '../../utils/api';
 import {
   Box,
   Card,
@@ -10,6 +14,12 @@ import {
 } from '@material-ui/core';
 import 'fontsource-roboto';
 import { LoaderOptionsPlugin } from 'webpack';
+
+enum WeatherCardStatusE {
+  loading,
+  error,
+  ready,
+}
 
 // Nice way to reuse containers
 const WeatherCardContainer: React.FC<{
@@ -32,16 +42,11 @@ const WeatherCardContainer: React.FC<{
   );
 };
 
-enum WeatherCardStatusE {
-  loading,
-  error,
-  ready,
-}
-
 export const WeatherCard: React.FC<{
   city: string;
   onDelete?: () => void;
-}> = ({ city, onDelete }) => {
+  tempScale: OpenWeatherTempScale;
+}> = ({ city, onDelete, tempScale }) => {
   const [weatherData, setWeatherData] = useState<OpenWeatherDataI | null>(null);
   const [status, setStatus] = useState<WeatherCardStatusE>(
     WeatherCardStatusE.loading
@@ -49,13 +54,13 @@ export const WeatherCard: React.FC<{
 
   useEffect(() => {
     // NOTE useEffect cannot be async, so need to attach these (prob not a good idea to await)
-    fetchOpenWeatherData(city)
+    fetchOpenWeatherData(city, tempScale)
       .then((data) => {
         setWeatherData(data);
         setStatus(WeatherCardStatusE.ready);
       })
       .catch((err) => setStatus(WeatherCardStatusE.error));
-  }, [city]);
+  }, [city, tempScale]);
 
   if (
     status === WeatherCardStatusE.loading ||
