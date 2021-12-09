@@ -1,24 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { Box, Grid, InputBase, IconButton, Paper } from '@material-ui/core';
+import {
+  Add as AddIcon,
+  PictureInPicture as PictureInPictureIcon,
+} from '@material-ui/icons';
+import 'fontsource-roboto';
 import './popup.css';
-import WeatherCard from './WeatherCard';
+import WeatherCard from '../components/WeatherCard';
 import {
-  InputBase,
-  IconButton,
-  Paper,
-  Input,
-  Box,
-  Grid,
-  Icon,
-} from '@material-ui/core';
-import { Add, Add as AddIcon } from '@material-ui/icons';
-import {
-  getStoredCities,
   setStoredCities,
   setStoredOptions,
+  getStoredCities,
   getStoredOptions,
   LocalStorageOptions,
 } from '../utils/storage';
+import { Messages } from '../utils/messages';
 
 const App: React.FC<{}> = () => {
   const [cities, setCities] = useState<string[]>([]);
@@ -26,37 +23,23 @@ const App: React.FC<{}> = () => {
   const [options, setOptions] = useState<LocalStorageOptions | null>(null);
 
   useEffect(() => {
-    // Notice how these can run in parallel now (don't need to Promise.allSettled)
-    getStoredCities().then((cities) => {
-      setCities(cities);
-    });
-
-    getStoredOptions().then((options) => {
-      setOptions(options);
-    });
+    getStoredCities().then((cities) => setCities(cities));
+    getStoredOptions().then((options) => setOptions(options));
   }, []);
 
-  const handleCityInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ): void => {
-    setCityInput(e.target.value);
-  };
-
-  const handleAddCity = () => {
-    if (cityInput.trim() === '') return;
-
+  const handleCityButtonClick = () => {
+    if (cityInput === '') {
+      return;
+    }
     const updatedCities = [...cities, cityInput];
-
-    // Prob could have done this with await right?
     setStoredCities(updatedCities).then(() => {
       setCities(updatedCities);
-      setCityInput(''); // Don't forget to clear text fields
+      setCityInput('');
     });
   };
 
-  const handleCityDelete = (index: number) => {
+  const handleCityDeleteButtonClick = (index: number) => {
     cities.splice(index, 1);
-
     const updatedCities = [...cities];
     setStoredCities(updatedCities).then(() => {
       setCities(updatedCities);
@@ -64,14 +47,27 @@ const App: React.FC<{}> = () => {
   };
 
   const handleTempScaleButtonClick = () => {
-    const updatedOptions: LocalStorageOptions = {
+    const updateOptions: LocalStorageOptions = {
       ...options,
       tempScale: options.tempScale === 'metric' ? 'imperial' : 'metric',
     };
-
-    setStoredOptions(updatedOptions).then(() => {
-      setOptions(updatedOptions);
+    setStoredOptions(updateOptions).then(() => {
+      setOptions(updateOptions);
     });
+  };
+
+  const handleOverlayButtonClick = () => {
+    chrome.tabs.query(
+      {
+        active: true,
+        currentWindow: true,
+      },
+      (tabs) => {
+        if (tabs.length > 0) {
+          chrome.tabs.sendMessage(tabs[0].id, Messages.TOGGLE_OVERLAY);
+        }
+      }
+    );
   };
 
   if (!options) {
@@ -80,43 +76,51 @@ const App: React.FC<{}> = () => {
 
   return (
     <Box mx='8px' my='16px'>
-      <Grid container justifyContent='space-evenly'>
+      <Grid container justifyContent={'space-evenly'}>
         <Grid item>
           <Paper>
             <Box px='15px' py='5px'>
               <InputBase
-                value={cityInput}
-                onChange={handleCityInputChange}
                 placeholder='Add a city name'
+                value={cityInput}
+                onChange={(event) => setCityInput(event.target.value)}
               />
-              <IconButton onClick={handleAddCity}>
+              <IconButton onClick={handleCityButtonClick}>
                 <AddIcon />
               </IconButton>
             </Box>
           </Paper>
         </Grid>
-
         <Grid item>
           <Paper>
-            <Box>
+            <Box py='4px'>
               <IconButton onClick={handleTempScaleButtonClick}>
                 {options.tempScale === 'metric' ? '\u2103' : '\u2109'}
               </IconButton>
             </Box>
           </Paper>
         </Grid>
+        <Grid item>
+          <Paper>
+            <Box py='4px'>
+              <IconButton onClick={handleOverlayButtonClick}>
+                <PictureInPictureIcon />
+              </IconButton>
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
-      {cities.map((city, index) => {
-        return (
-          <WeatherCard
-            key={city}
-            city={city}
-            tempScale={options.tempScale}
-            onDelete={() => handleCityDelete(index)}
-          />
-        );
-      })}
-
+      {options.homeCity != '' && (
+        <WeatherCard city={options.homeCity} tempScale={options.tempScale} />
+      )}
+      {cities.map((city, index) => (
+        <WeatherCard
+          city={city}
+          tempScale={options.tempScale}
+          key={index}
+          onDelete={() => handleCityDeleteButtonClick(index)}
+        />
+      ))}
       <Box height='16px' />
     </Box>
   );

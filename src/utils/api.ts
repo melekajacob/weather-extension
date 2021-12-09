@@ -1,8 +1,6 @@
-// Free plan API key, low risk keeping it in frontend
-const OPEN_WEATHER_API_KEY = `20f07b7926e0dfbe3356dc78f3a6d717`;
+const OPEN_WEATHER_API_KEY = '20f07b7926e0dfbe3356dc78f3a6d717';
 
-// We don't need to worry about payload coming from PAI changing because its a versioned API
-export interface OpenWeatherDataI {
+export interface OpenWeatherData {
   name: string;
   main: {
     feels_like: number;
@@ -26,19 +24,22 @@ export interface OpenWeatherDataI {
 
 export type OpenWeatherTempScale = 'metric' | 'imperial';
 
-export const fetchOpenWeatherData = async (
+export async function fetchOpenWeatherData(
   city: string,
   tempScale: OpenWeatherTempScale
-): Promise<OpenWeatherDataI> => {
+): Promise<OpenWeatherData> {
   const res = await fetch(
-    `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${OPEN_WEATHER_API_KEY}&units=${tempScale}`
+    `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${tempScale}&appid=${OPEN_WEATHER_API_KEY}`
   );
 
   if (!res.ok) {
     throw new Error('City not found');
   }
 
-  const data: OpenWeatherDataI = await res.json();
-
+  const data: OpenWeatherData = await res.json();
   return data;
-};
+}
+
+export function getWeatherIconSrc(iconCode: string) {
+  return `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+}
